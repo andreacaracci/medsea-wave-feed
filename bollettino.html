@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Brega | Bollettino operativo sperimentale</title>
+<meta name="description" content="Preallerta esplorativa di onda lunga offshore per la banchina di Marsa El Brega, basata su Copernicus Marine.">
+<style>
+:root{--ink:#122b3b;--mute:#506675;--line:#dce5e9;--blue:#0b5c75;--teal:#126e74;--bg:#f4f7f8;--paper:#fff;--warm:#a85d19;--warmbg:#fff6e8;--error:#9d3030}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}a{color:var(--blue)}
+.shell{max-width:1050px;margin:0 auto;padding:28px 20px 60px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px}
+.brand{font-weight:800;letter-spacing:.10em;color:var(--blue);font-size:14px}.eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:750;color:var(--mute)}
+h1{font-size:clamp(26px,4vw,37px);line-height:1.1;letter-spacing:-.03em;margin:9px 0 8px}h2{font-size:20px;line-height:1.3;margin:0 0 14px}
+p{margin:8px 0}.subtitle{color:var(--mute);max-width:650px}
+button{border:1px solid #b8cbd3;border-radius:9px;padding:10px 15px;background:white;font:inherit;white-space:nowrap;cursor:pointer;color:var(--blue);font-weight:700}
+button:focus-visible,a:focus-visible{outline:3px solid #8bbbd0;outline-offset:3px}button:disabled{cursor:wait;opacity:.6}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:23px;margin-bottom:16px;box-shadow:0 4px 16px #1c52690a}
+#hero[data-state="signal"]{border-left:5px solid var(--warm)}#hero[data-state="error"]{border-left:5px solid var(--error)}
+.topline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:4px 11px;color:var(--mute);font-weight:750}
+.pill.signal{color:var(--warm);background:var(--warmbg);border-color:#efdfc5}
+h3{font-size:18px;line-height:1.3;margin:10px 0 7px}
+.muted{color:var(--mute)}.strong{font-weight:700}.tiny{font-size:12px;color:var(--mute)}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:17px 0}
+.metric{border:1px solid var(--line);border-radius:10px;padding:13px}.metric-label{display:block;font-size:12px;color:var(--mute)}.metric-value{font-weight:800;font-size:19px;margin-top:5px}
+.notice{margin-top:15px;padding:12px 14px;border-radius:9px;background:#edf4f6;color:#274657;font-size:13px}
+.day-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.day{border:1px solid var(--line);border-radius:10px;padding:12px;min-height:91px}
+.day.active{background:var(--warmbg);border-color:#e6cca5}.day-title{font-size:12px;color:var(--mute);font-weight:700}.day-status{font-weight:800;font-size:15px;margin-top:8px}.day-note{font-size:12px;color:var(--mute)}
+.event{border-top:1px solid var(--line);padding:15px 0}.event:first-of-type{border-top:0;padding-top:0}
+.meta{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.err{color:var(--error);font-weight:700}footer{font-size:12px;color:var(--mute);margin-top:20px}
+noscript{color:#a82d24}
+@media(max-width:780px){.day-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.shell{padding:20px 13px 50px}header{flex-direction:column}.panel{padding:17px}.metrics,.day-grid{grid-template-columns:1fr 1fr}.metric-value{font-size:17px}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header>
+ <div><div class="brand">BREGA MARINE WATCH</div>
+ <h1>Bollettino operativo</h1>
+ <p class="subtitle">Preallerta sperimentale di onda lunga davanti a Marsa El Brega. Le informazioni sono pensate per programmare verifiche e precauzioni di cantiere, non per autorizzare le lavorazioni.</p></div>
+ <button id="reload" type="button">Aggiorna dati</button>
+</header>
+<section class="panel" id="hero" aria-live="polite" data-state="loading">
+ <div class="topline"><span class="eyebrow">Prossimi 5 giorni · ora libica</span><span class="pill" id="status">Caricamento</span></div>
+ <h2 id="headline" style="margin-top:13px">Lettura delle previsioni…</h2>
+ <p id="lede" class="muted">Consultazione dei dati Copernicus Marine.</p>
+ <div class="metrics" id="metrics" hidden></div>
+ <p class="tiny" id="timeinfo"></p>
+ <div class="notice">Il segnale descritto è <strong>offshore</strong>. Non costituisce una previsione validata della risacca sotto la banchina, né un ordine automatico di movimentare le pedane. Attenersi alle procedure HSE e alle decisioni dei responsabili di cantiere.</div>
+</section>
+<section class="panel">
+ <h2>Panoramica giornaliera</h2>
+ <div id="days" class="day-grid" aria-live="polite"><p class="muted">Caricamento…</p></div>
+ <p class="tiny">«Nessun segnale» significa solo che le soglie esplorative non risultano superate nei dati disponibili; non equivale a mare sicuro.</p>
+</section>
+<section class="panel">
+ <h2>Dettaglio degli episodi</h2>
+ <div id="events" aria-live="polite"><p class="muted">Caricamento…</p></div>
+</section>
+<section class="panel">
+ <h2>Rispetto alla previsione precedente</h2>
+ <div id="revision" class="muted">Caricamento…</div>
+</section>
+<section class="panel">
+ <h2>Come interpretarlo</h2>
+ <p>Il programma segnala un episodio quando almeno <strong>due ore consecutive</strong> soddisfano uno di questi criteri di screening: swell principale o secondario con altezza almeno <strong>0,20 m</strong> e periodo medio almeno <strong>8 s</strong>; oppure altezza significativa totale almeno <strong>0,35 m</strong> e periodo di picco almeno <strong>8 s</strong>.</p>
+ <p>Si tratta delle soglie esplorative di Marine Watch, <strong>non</strong> di limiti di sicurezza della banchina. Le ore rappresentano la permanenza sopra soglia <em>davanti al porto</em>, non la durata dimostrata della risacca interna.</p>
+ <p class="tiny">Fonte: Copernicus Marine Service, Med-WAV 4,2 km, previsioni numeriche non osservazioni. Il timestamp di esportazione non prova l'identità del ciclo di modello. Valutazione HSE indipendente obbligatoria.</p>
+</section>
+<footer><a href="./">Torna alla dashboard Marine Watch</a> · Pagina sperimentale 4D1 · Aggiornamento dei dati all'apertura e su richiesta.</footer>
+<noscript>Per consultare il bollettino è necessario abilitare JavaScript.</noscript>
+</main>
+<script>
+"use strict";
+(function(){
+const TZ="Africa/Tripoli", HOUR=3600000, DAYS=5, MAX_AGE=6*HOUR;
+const $=id=>document.getElementById(id);
+const fmt=(ms,options)=>new Intl.DateTimeFormat("it-IT",Object.assign({timeZone:TZ},options)).format(new Date(ms));
+const dateTime=ms=>fmt(ms,{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const dayName=ms=>fmt(ms,{weekday:"short",day:"numeric",month:"short"});
+const dayKey=ms=>fmt(ms,{year:"numeric",month:"2-digit",day:"2-digit"});
+const num=(v)=>typeof v==="number"&&Number.isFinite(v)&&v>=0?v:null;
+const shown=(n,d=2)=>n===null?"n.d.":Number(n).toFixed(d).replace(".",",");
+const utc=s=>{const v=Date.parse(s);if(!Number.isFinite(v))throw Error("Timestamp non valido");return v;};
+function qualify(r){
+  if(!r)return null;
+  const test=[];
+  for(const c of ["primary","secondary"]){
+    const h=num(r[c+"_swell_height_m"]),p=num(r[c+"_swell_mean_period_s"]);
+    test.push(h!==null && h<.2 || p!==null && p<8 ? false : h===null || p===null ? null : h>=.2&&p>=8);
+  }
+  const h=num(r.significant_wave_height_m),p=num(r.wave_peak_period_s);
+  test.push(h!==null&&h<.35 || p!==null&&p<8 ? false : h===null||p===null ? null : h>=.35&&p>=8);
+  return test.includes(true)?true:test.includes(null)?null:false;
+}
+function build(doc,now){
+  if(doc.dataset_id!=="cmems_mod_med_wav_anfc_4.2km_PT1H-i"||
+     doc.measurement_type!=="numerical_model_forecast_not_observation")throw Error("Fonte inattesa");
+  const generated=utc(doc.generated_at_utc),age=now-generated;
+  if(age>MAX_AGE || age< -5*60000)throw Error("Previsione non aggiornata: ultima emissione "+dateTime(generated));
+  const data=doc.stations&&doc.stations.brega_offshore&&doc.stations.brega_offshore.forecast;
+  if(!Array.isArray(data)||!data.length)throw Error("Dati offshore assenti");
+  const lookup=new Map();
+  for(const r of data){const t=utc(r.valid_time_utc);if(lookup.has(t))throw Error("Ore duplicate");lookup.set(t,r);}
+  const start=Math.ceil(now/HOUR)*HOUR,end=start+DAYS*24*HOUR;
+  if(Math.max(...lookup.keys())<start+24*HOUR)throw Error("Orizzonte di previsione insufficiente");
+  let run=[],events=[],missing=0;
+  const flush=()=>{
+    if(run.length>=2){
+      const rows=run.map(t=>lookup.get(t));
+      const peak=f=>{const v=rows.map(r=>num(r[f])).filter(x=>x!==null);return v.length?Math.max(...v):null;};
+      const swells=["primary","secondary"].map(c=>{
+        let best=null;
+        for(const r of rows){
+          const h=num(r[c+"_swell_height_m"]);
+          if(h!==null&&(!best||h>best.height)){
+            best={height:h,period:num(r[c+"_swell_mean_period_s"]),direction:num(r[c+"_swell_from_deg"])};
+          }
+        }
+        return best;
+      });
+      events.push({start:run[0],end:run[run.length-1],hours:run.length,
+        hs:peak("significant_wave_height_m"),swells});
+    }
+    run=[];
+  };
+  for(let t=start;t<=end;t+=HOUR){
+    const yes=qualify(lookup.get(t));
+    if(yes===true)run.push(t);
+    else{flush();if(yes===null)missing++;}
+  }
+  flush();
+  return {generated,now,start,end,events,missing,total:(end-start)/HOUR+1};
+}
+function revision(index,doc){
+  const list=index&&index.history;
+  if(!Array.isArray(list)||!list.length)return "Confronto storico non disponibile.";
+  const h=list[list.length-1];
+  if(h.generated_at_utc!==doc.generated_at_utc)return "L'archivio delle revisioni non è ancora allineato all'ultima previsione.";
+  const s=h.stations&&h.stations.brega_offshore;
+  if(!s||!s.quality||s.quality.status!=="complete")return "Confronto incompleto: non attribuiamo variazioni agli episodi.";
+  const cs=s.episode_changes||[];
+  if(!cs.length)return "Nessuna transizione di episodio classificata nell'ultimo confronto.";
+  const messages=[];
+  for(const c of cs.slice(0,4)){
+    if(c.matching_ambiguous||c.status==="indeterminate"){
+      messages.push("Associazione tra episodi incerta: revisione non attribuibile con sicurezza.");
+      continue;
+    }
+    if(c.status==="new"){messages.push("Nuovo superamento di soglia nella previsione più recente.");continue;}
+    if(c.status==="no_longer_predicted"){messages.push("Un superamento previsto in precedenza non compare più nella nuova emissione.");continue;}
+    const shift=Number(c.arrival_shift_hours);
+    if(c.arrival_change==="earlier"&&Number.isFinite(shift))messages.push("Inizio del segnale anticipato di "+shown(Math.abs(shift),0)+" ore.");
+    else if(c.arrival_change==="later"&&Number.isFinite(shift))messages.push("Inizio del segnale posticipato di "+shown(Math.abs(shift),0)+" ore.");
+    else if(c.arrival_change==="unchanged")messages.push("Orario di inizio del segnale invariato.");
+    else messages.push("Variazione dell'orario non determinabile.");
+    const delta=c.peak_deltas&&c.peak_deltas.significant_wave_height_m;
+    if(typeof delta==="number"&&Number.isFinite(delta)&&Math.abs(delta)>.005)
+      messages.push("Variazione del massimo Hs: "+(delta>0?"+":"")+shown(delta)+" m.");
+  }
+  if(cs.length>4)messages.push("Altre transizioni: "+(cs.length-4)+".");
+  return messages.join(" ");
+}
+const safeMsg=(text)=>{const p=document.createElement("p");p.textContent=text;return p;};
+function metric(label,value){const d=document.createElement("div");d.className="metric";const l=document.createElement("span");l.className="metric-label";l.textContent=label;const v=document.createElement("div");v.className="metric-value";v.textContent=value;d.append(l,v);return d;}
+function render(doc,index,now){
+  const result=build(doc,now),hero=$("hero"),status=$("status"),first=result.events[0];
+  $("timeinfo").textContent="Emissione Copernicus: "+dateTime(result.generated)+" (Libia) · consultato: "+dateTime(now)+" · ciclo modello: non verificato.";
+  hero.dataset.state=first?"signal":"normal";
+  status.className="pill"+(first?" signal":"");
+  status.textContent=first?"Preallerta esplorativa":result.missing?"Copertura incompleta":"Nessun superamento rilevato";
+  $("headline").textContent=first?(first.start<=result.start?"Segnale di onda lunga in corso o imminente":"Possibile onda lunga da "+dayName(first.start)):"Nessun episodio sopra soglia individuato";
+  $("lede").textContent=first?
+    "Il modello segnala un possibile episodio davanti al porto: preparare la verifica delle attività esposte secondo il piano HSE. La risacca dentro la banchina non è stimata.":
+    "Nei dati disponibili non risultano episodi di almeno due ore sopra le soglie esplorative. Questo non dimostra condizioni sicure in porto.";
+  const metrics=$("metrics");metrics.hidden=false;metrics.replaceChildren();
+  if(first){metrics.append(metric("Inizio offshore",dateTime(first.start)),metric("Ultima ora sopra soglia",dateTime(first.end)),metric("Ore sopra soglia",String(first.hours)));}
+  else metrics.append(metric("Orizzonte analizzato","5 giorni"),metric("Episodi rilevati","0"),metric("Ore con dati insufficienti",String(result.missing)));
+  const days=$("days");days.replaceChildren();
+  for(let i=0;i<5;i++){
+    const beginning=result.start+i*24*HOUR;
+    const k=dayKey(beginning);
+    const times=[];
+    for(let t=result.start;t<=result.end;t+=HOUR)if(dayKey(t)===k)times.push(t);
+    const overlapping=result.events.filter(e=>times.some(t=>t>=e.start&&t<=e.end));
+    const d=document.createElement("div");d.className="day"+(overlapping.length?" active":"");
+    const title=document.createElement("div");title.className="day-title";title.textContent=dayName(beginning);
+    const st=document.createElement("div");st.className="day-status";st.textContent=overlapping.length?"Segnale NW / lungo":"Nessun segnale";
+    const small=document.createElement("div");small.className="day-note";small.textContent=overlapping.length?
+      "Sopra soglia offshore":"Solo secondo i criteri esplorativi";
+    d.append(title,st,small);days.append(d);
+  }
+  const details=$("events");details.replaceChildren();
+  if(!first)details.append(safeMsg("Nessun episodio individuato nel periodo analizzato."));
+  for(let i=0;i<result.events.length;i++){
+    const e=result.events[i],section=document.createElement("article");section.className="event";
+    const head=document.createElement("h3");head.textContent="Episodio "+(i+1)+" · "+dateTime(e.start)+" – "+dateTime(e.end);
+    const p=document.createElement("p");p.textContent=e.hours+" ore sopra la soglia esplorativa · Hs massimo previsto "+shown(e.hs)+" m.";
+    section.append(head,p);
+    for(let j=0;j<e.swells.length;j++){
+      const s=e.swells[j];if(!s)continue;
+      const v=document.createElement("p");v.className="muted";v.textContent="Swell "+(j?"secondario":"principale")+
+        ": altezza max "+shown(s.height)+" m · periodo medio in quell'ora "+shown(s.period,1)+" s · provenienza "+(s.direction===null?"n.d.":shown(s.direction,0)+"°")+".";
+      section.append(v);
+    }
+    details.append(section);
+  }
+  if(result.missing){const p=document.createElement("p");p.className="err";p.textContent=result.missing+" ore senza dati sufficienti nell'orizzonte di analisi. Non interpretare tali ore come mare calmo.";details.append(p);}
+  $("revision").textContent=revision(index,doc);
+}
+async function load(){
+  const button=$("reload");button.disabled=true;button.textContent="Aggiornamento…";
+  try{
+    const stamp=Date.now(),cache="?t="+stamp;
+    const requests=await Promise.all([
+      fetch("forecast/latest.json"+cache,{cache:"no-store"}),
+      fetch("forecast/archive/index.json"+cache,{cache:"no-store"}).catch(()=>null)
+    ]);
+    if(!requests[0].ok)throw Error("Feed previsionale non disponibile ("+requests[0].status+")");
+    const data=await requests[0].json();
+    let index=null;
+    if(requests[1]&&requests[1].ok)index=await requests[1].json().catch(()=>null);
+    render(data,index,Date.now());
+  }catch(error){
+    $("hero").dataset.state="error";$("status").className="pill";$("status").textContent="Dati non disponibili";
+    $("headline").textContent="Bollettino non verificabile";
+    $("lede").textContent=error instanceof Error?error.message:"Errore nella lettura dei dati";
+    $("metrics").hidden=true;$("timeinfo").textContent="";
+    $("days").replaceChildren(safeMsg("Nessuna valutazione possibile: riprovare più tardi."));
+    $("events").replaceChildren(safeMsg("Non usare questa pagina come conferma di condizioni favorevoli."));
+    $("revision").textContent="Confronto non disponibile.";
+  }finally{button.disabled=false;button.textContent="Aggiorna dati";}
+}
+$("reload").addEventListener("click",load);
+load();
+})();
+</script>
+</body>
+</html>
