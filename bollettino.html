@@ -46,7 +46,7 @@ noscript{color:#a82d24}
  <button id="reload" type="button">Aggiorna dati</button>
 </header>
 <section class="panel" id="hero" aria-live="polite" data-state="loading">
- <div class="topline"><span class="eyebrow">Prossimi 5 giorni · ora libica</span><span class="pill" id="status">Caricamento</span></div>
+ <div class="topline"><span class="eyebrow">Prossime 120 ore · ora libica</span><span class="pill" id="status">Caricamento</span></div>
  <h2 id="headline" style="margin-top:13px">Lettura delle previsioni…</h2>
  <p id="lede" class="muted">Consultazione dei dati Copernicus Marine.</p>
  <div class="metrics" id="metrics" hidden></div>
@@ -109,7 +109,7 @@ function build(doc,now){
   for(const r of data){const t=utc(r.valid_time_utc);if(lookup.has(t))throw Error("Ore duplicate");lookup.set(t,r);}
   const start=Math.ceil(now/HOUR)*HOUR,end=start+DAYS*24*HOUR;
   if(Math.max(...lookup.keys())<start+24*HOUR)throw Error("Orizzonte di previsione insufficiente");
-  let run=[],events=[],missing=0;
+  let run=[],events=[],missing=0,unknownDays=new Set();
   const flush=()=>{
     if(run.length>=2){
       const rows=run.map(t=>lookup.get(t));
@@ -132,10 +132,10 @@ function build(doc,now){
   for(let t=start;t<=end;t+=HOUR){
     const yes=qualify(lookup.get(t));
     if(yes===true)run.push(t);
-    else{flush();if(yes===null)missing++;}
+    else{flush();if(yes===null){missing++;unknownDays.add(dayKey(t));}}
   }
   flush();
-  return {generated,now,start,end,events,missing,total:(end-start)/HOUR+1};
+  return {generated,now,start,end,events,missing,unknownDays,total:(end-start)/HOUR+1};
 }
 function revision(index,doc){
   const list=index&&index.history;
@@ -180,19 +180,23 @@ function render(doc,index,now){
     "Nei dati disponibili non risultano episodi di almeno due ore sopra le soglie esplorative. Questo non dimostra condizioni sicure in porto.";
   const metrics=$("metrics");metrics.hidden=false;metrics.replaceChildren();
   if(first){metrics.append(metric("Inizio offshore",dateTime(first.start)),metric("Ultima ora sopra soglia",dateTime(first.end)),metric("Ore sopra soglia",String(first.hours)));}
-  else metrics.append(metric("Orizzonte analizzato","5 giorni"),metric("Episodi rilevati","0"),metric("Ore con dati insufficienti",String(result.missing)));
+  else metrics.append(metric("Orizzonte analizzato","120 ore"),metric("Episodi rilevati","0"),metric("Ore con dati insufficienti",String(result.missing)));
   const days=$("days");days.replaceChildren();
-  for(let i=0;i<5;i++){
-    const beginning=result.start+i*24*HOUR;
-    const k=dayKey(beginning);
+  const dayAnchors=new Map();
+  for(let t=result.start;t<=result.end;t+=HOUR){
+    const k=dayKey(t);
+    if(!dayAnchors.has(k))dayAnchors.set(k,t);
+  }
+  for(const [k,beginning] of dayAnchors){
     const times=[];
     for(let t=result.start;t<=result.end;t+=HOUR)if(dayKey(t)===k)times.push(t);
     const overlapping=result.events.filter(e=>times.some(t=>t>=e.start&&t<=e.end));
+    const unknown=result.unknownDays.has(k);
     const d=document.createElement("div");d.className="day"+(overlapping.length?" active":"");
     const title=document.createElement("div");title.className="day-title";title.textContent=dayName(beginning);
-    const st=document.createElement("div");st.className="day-status";st.textContent=overlapping.length?"Segnale NW / lungo":"Nessun segnale";
+    const st=document.createElement("div");st.className="day-status";st.textContent=overlapping.length?"Onda lunga":unknown?"Dati incompleti":"Nessun segnale";
     const small=document.createElement("div");small.className="day-note";small.textContent=overlapping.length?
-      "Sopra soglia offshore":"Solo secondo i criteri esplorativi";
+      "Sopra soglia offshore":unknown?"Alcune ore senza dati":"Solo secondo i criteri esplorativi";
     d.append(title,st,small);days.append(d);
   }
   const details=$("events");details.replaceChildren();
