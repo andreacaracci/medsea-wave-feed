@@ -1,0 +1,24 @@
+name: Test bollettino operativo web 4D1
+
+on:
+  pull_request:
+    paths:
+      - 'bollettino.html'
+      - 'tests/test_bollettino.cjs'
+      - '.github/workflows/test-bollettino-4d1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verifica soglie, persistenza, qualità dati e revisioni
+        run: node tests/test_bollettino.cjs
