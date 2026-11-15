@@ -120,6 +120,32 @@ button:disabled{cursor:wait;opacity:.65}
 .err{color:var(--error);font-weight:750}
 footer{border-top:3px solid var(--blue);padding-top:18px;font-size:12px;color:var(--mute);margin-top:25px;text-align:center}
 footer a{font-weight:750}
+
+/* Colorazione indicativa del massimo Hs totale offshore, mai del rischio HSE. */
+.wave-legend{display:flex;align-items:center;flex-wrap:wrap;gap:8px 15px;margin:13px 0 7px;font-size:12px;color:var(--ink)}
+.wave-legend strong{font-size:12px}
+.wave-legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.wave-legend i{display:inline-block;width:13px;height:13px;border:1px solid #aebcc7;border-radius:3px}
+#hero[data-hs-band="white"]{border-top-color:#aebcc7;background:#fff}
+#hero[data-hs-band="yellow"]{border-top-color:#e1ae18;background:#fff9e2}
+#hero[data-hs-band="orange"]{border-top-color:#e97a26;background:#fff1e2}
+#hero[data-hs-band="red"]{border-top-color:#c83838;background:#ffe9e8}
+.pill.hs-white{background:#fff;color:#26394d;border-color:#aebcc7}
+.pill.hs-yellow{background:#f2c334;color:#4f3800;border-color:#ce9c10}
+.pill.hs-orange{background:#ed9138;color:#442100;border-color:#be5c1e}
+.pill.hs-red{background:#cb3e42;color:#fff;border-color:#a6232a}
+.day.active.hs-white{background:#fff;border-color:#aebcc7}
+.day.active.hs-yellow{background:#fff9e2;border-color:#e1ae18}
+.day.active.hs-orange{background:#fff1e2;border-color:#e97a26}
+.day.active.hs-red{background:#ffe9e8;border-color:#c83838}
+.day.hs-white::before{background:#fff;box-shadow:inset 0 0 0 1px #aebcc7}
+.day.hs-yellow::before{background:#e1ae18}
+.day.hs-orange::before{background:#e97a26}
+.day.hs-red::before{background:#c83838}
+.event.hs-white{background:#fff;border-left-color:#aebcc7}
+.event.hs-yellow{background:#fff9e2;border-left-color:#e1ae18}
+.event.hs-orange{background:#fff1e2;border-left-color:#e97a26}
+.event.hs-red{background:#ffe9e8;border-left-color:#c83838}
 noscript{color:#a82d24}
 @media(max-width:800px){
   .shell{padding:16px 15px 45px}
@@ -186,6 +212,14 @@ noscript{color:#a82d24}
  <h2 id="headline" style="margin-top:13px">Lettura delle previsioni…</h2>
  <p id="lede" class="muted">Consultazione dei dati Copernicus Marine.</p>
  <div class="metrics" id="metrics" hidden></div>
+ <div class="wave-legend" aria-label="Scala colori per altezza significativa totale Hs">
+  <strong>Hs totale previsto:</strong>
+  <span><i style="background:#fff"></i>Bianco 0–25 cm</span>
+  <span><i style="background:#f2c334"></i>Giallo 26–40 cm</span>
+  <span><i style="background:#ed9138"></i>Arancione 41–80 cm</span>
+  <span><i style="background:#cb3e42"></i>Rosso &gt;80 cm</span>
+ </div>
+ <p class="tiny">Il colore usa il massimo Hs totale dell'episodio, arrotondato al centimetro, e non misura la risacca interna né il rischio delle lavorazioni.</p>
  <p class="tiny" id="timeinfo"></p>
  <div class="notice">Il segnale descritto è <strong>offshore</strong>. Non costituisce una previsione validata della risacca sotto la banchina, né un ordine automatico di movimentare le pedane. Attenersi alle procedure HSE e alle decisioni dei responsabili di cantiere.</div>
 </section>
@@ -223,6 +257,7 @@ const dayKey=ms=>fmt(ms,{year:"numeric",month:"2-digit",day:"2-digit"});
 const num=(v)=>typeof v==="number"&&Number.isFinite(v)&&v>=0?v:null;
 const shown=(n,d=2)=>n===null?"n.d.":Number(n).toFixed(d).replace(".",",");
 const utc=s=>{const v=Date.parse(s);if(!Number.isFinite(v))throw Error("Timestamp non valido");return v;};
+function waveHsBand(meters){if(typeof meters!=="number"||!Number.isFinite(meters)||meters<0)return null;const cm=Math.round(meters*100);return cm<=25?"white":cm<=40?"yellow":cm<=80?"orange":"red";}
 function qualify(r){
   if(!r)return null;
   const test=[];
@@ -308,8 +343,11 @@ function render(doc,index,now){
   const result=build(doc,now),hero=$("hero"),status=$("status"),first=result.events[0];
   $("timeinfo").textContent="Emissione Copernicus: "+dateTime(result.generated)+" (Libia) · consultato: "+dateTime(now)+" · ciclo modello: non verificato.";
   hero.dataset.state=first?"signal":"normal";
-  status.className="pill"+(first?" signal":"");
-  status.textContent=first?"Preallerta esplorativa":result.missing?"Copertura incompleta":"Nessun superamento rilevato";
+  const band=first?waveHsBand(first.hs):null;
+  if(band)hero.dataset.hsBand=band;else delete hero.dataset.hsBand;
+  const bandNames={white:"BIANCO",yellow:"GIALLO",orange:"ARANCIONE",red:"ROSSO"};
+  status.className="pill"+(first?" signal":"")+(band?" hs-"+band:"");
+  status.textContent=first?"Preallerta esplorativa"+(band?" · Hs "+shown(first.hs)+" m · "+bandNames[band]:" · Hs n.d."):result.missing?"Copertura incompleta":"Nessun superamento rilevato";
   $("headline").textContent=first?(first.start<=result.start?"Segnale di onda lunga in corso o imminente":"Possibile onda lunga da "+dayName(first.start)):"Nessun episodio sopra soglia individuato";
   $("lede").textContent=first?
     "Il modello segnala un possibile episodio davanti al porto: preparare la verifica delle attività esposte secondo il piano HSE. La risacca dentro la banchina non è stimata.":
@@ -328,7 +366,7 @@ function render(doc,index,now){
     for(let t=result.start;t<=result.end;t+=HOUR)if(dayKey(t)===k)times.push(t);
     const overlapping=result.events.filter(e=>times.some(t=>t>=e.start&&t<=e.end));
     const unknown=result.unknownDays.has(k);
-    const d=document.createElement("div");d.className="day"+(overlapping.length?" active":"");
+    const d=document.createElement("div");const dayHs=overlapping.map(e=>e.hs).filter(x=>x!==null);const dayBand=dayHs.length?waveHsBand(Math.max(...dayHs)):null;d.className="day"+(overlapping.length?" active":"")+(dayBand?" hs-"+dayBand:"");
     const title=document.createElement("div");title.className="day-title";title.textContent=dayName(beginning);
     const st=document.createElement("div");st.className="day-status";st.textContent=overlapping.length?"Onda lunga":unknown?"Dati incompleti":"Nessun segnale";
     const small=document.createElement("div");small.className="day-note";small.textContent=overlapping.length?
@@ -338,7 +376,7 @@ function render(doc,index,now){
   const details=$("events");details.replaceChildren();
   if(!first)details.append(safeMsg("Nessun episodio individuato nel periodo analizzato."));
   for(let i=0;i<result.events.length;i++){
-    const e=result.events[i],section=document.createElement("article");section.className="event";
+    const e=result.events[i],section=document.createElement("article");const eventBand=waveHsBand(e.hs);section.className="event"+(eventBand?" hs-"+eventBand:"");
     const head=document.createElement("h3");head.textContent="Episodio "+(i+1)+" · "+dateTime(e.start)+" – "+dateTime(e.end);
     const p=document.createElement("p");p.textContent=e.hours+" ore sopra la soglia esplorativa · Hs massimo previsto "+shown(e.hs)+" m.";
     section.append(head,p);
@@ -367,7 +405,7 @@ async function load(){
     if(requests[1]&&requests[1].ok)index=await requests[1].json().catch(()=>null);
     render(data,index,Date.now());
   }catch(error){
-    $("hero").dataset.state="error";$("status").className="pill";$("status").textContent="Dati non disponibili";
+    $("hero").dataset.state="error";delete $("hero").dataset.hsBand;$("status").className="pill";$("status").textContent="Dati non disponibili";
     $("headline").textContent="Bollettino non verificabile";
     $("lede").textContent=error instanceof Error?error.message:"Errore nella lettura dei dati";
     $("metrics").hidden=true;$("timeinfo").textContent="";
