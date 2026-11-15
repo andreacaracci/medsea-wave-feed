@@ -47,4 +47,21 @@ assert.match(revision(history,doc),/anticipato di 3 ore/);
 assert.match(revision(history,doc),/0,03 m/);
 assert.match(revision({history:[]},doc),/non disponibile/);
 assert.ok(html.includes("non")&&html.includes("risacca"),"La sicurezza deve essere distinta dalla previsione offshore");
-console.log("Bollettino web 4D1: 10 controlli superati (syntax, 2h, 1h, missing, stale, revision, HSE).");
+const dashboard=fs.readFileSync("index.html","utf8");
+const bandRx=/function waveHsBand\(meters\)\{[^}]+\}/;
+const dashboardBand=dashboard.match(bandRx)?.[0];
+const bulletinBand=html.match(bandRx)?.[0];
+assert.ok(dashboardBand&&bulletinBand,"La scala colori deve essere definita in entrambe le pagine");
+assert.equal(dashboardBand,bulletinBand,"Dashboard e bollettino devono avere la stessa classificazione Hs");
+const band=vm.runInNewContext(dashboardBand+"\nwaveHsBand;",{}, {timeout:1000});
+for(const [meters,expected] of [
+  [0,"white"],[0.25,"white"],[0.26,"yellow"],[0.40,"yellow"],
+  [0.41,"orange"],[0.80,"orange"],[0.81,"red"],[1.2,"red"],
+  [null,null],[-.01,null],[Number.NaN,null]
+])assert.equal(band(meters),expected,"Banda errata per "+meters+" m");
+assert.ok(dashboard.includes("NESSUN EPISODIO")&&!dashboard.includes("VERDE · NESSUN SEGNALE"),
+  "Assenza episodio non deve apparire come banda bianca o verde");
+assert.ok(html.includes("Il colore usa il massimo Hs totale dell'episodio")&&dashboard.includes("NON l’altezza della sola onda lunga"),
+  "Le pagine devono distinguere Hs totale e risacca, senza valenza HSE");
+console.log("Bollettino: 10 controlli originali + 11 prove ai confini delle 4 bande + verifica coerenza dashboard e HSE superati.");
+
