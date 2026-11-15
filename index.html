@@ -25,10 +25,11 @@
 /* Preavviso onde lunghe: sola visualizzazione client, nessuna notifica inviata. */
 .early-warning{margin-top:18px;padding:20px 24px;border:1px solid #cddfe8;border-radius:17px;background:linear-gradient(100deg,#fff,#f4f9fb);box-shadow:var(--shadow);display:flex;gap:20px;align-items:flex-start;justify-content:space-between}
 .early-warning.alert{border-color:#e8bd77;background:linear-gradient(110deg,#fff9ed,#fffbf4)}
+.early-warning.wave-white{border-color:#aebcc7;background:#fff}
 .early-warning.wave-yellow{border-color:#e8ce71;background:linear-gradient(110deg,#fffcf0,#fff8de)}
 .early-warning.wave-orange{border-color:#eda96f;background:linear-gradient(110deg,#fff7ed,#ffeddf)}
 .early-warning.wave-red{border-color:#dc817e;background:linear-gradient(110deg,#fff4f3,#ffe9e7)}
-.early-warning.wave-calm{border-color:#a0d6c5;background:linear-gradient(110deg,#f2fbf7,#eaf8f1)}
+.early-warning.wave-calm{border-color:#b5c3cc;background:#f3f6f8}
 .early-warning.stale{border-color:#b5c3cc;background:#f3f6f8}
 .early-kicker{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;font-weight:800;color:#527588;margin:0 0 5px}
 .early-warning h2{font-size:19px;line-height:1.3;margin:0;color:#153a4e}
@@ -36,10 +37,11 @@
 .early-warning .early-fact{margin-top:10px;font-size:12px;font-weight:650;color:#2f586c}
 .early-pill{flex-shrink:0;padding:7px 10px;font-size:11px;font-weight:800;border-radius:9px;background:#e6f3f7;color:#175471;white-space:nowrap}
 .early-warning.alert .early-pill{background:#fff0d9;color:#895417}
+.early-warning.wave-white .early-pill{background:#fff;color:#26394d;border:1px solid #aebcc7}
 .early-warning.wave-yellow .early-pill{background:#f8e7a6;color:#775300}
 .early-warning.wave-orange .early-pill{background:#ffd3ab;color:#93420d}
 .early-warning.wave-red .early-pill{background:#f8c3bf;color:#9e2928}
-.early-warning.wave-calm .early-pill{background:#d1f0e2;color:#17674b}
+.early-warning.wave-calm .early-pill{background:#dfe7ec;color:#526570}
 .early-warning.stale .early-pill{background:#dfe7ec;color:#526570}
 .early-warning .early-foot{font-size:11px;opacity:.85}
 .wave-scale{display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;margin-top:12px;font-size:11px;color:#566b79}
@@ -51,18 +53,20 @@
 
 /* Grado cromatico ben visibile: magnitudine Hs dell'episodio, NON rischio operativo. */
 .early-warning{border-left:10px solid #a5b4bf;padding-left:22px}
+.early-warning.wave-white{border-left-color:#b5c3cc;background:#fff}
 .early-warning.wave-yellow{border-left-color:#e1ae18;background:#fff9e2}
 .early-warning.wave-orange{border-left-color:#e97a26;background:#fff1e2}
 .early-warning.wave-red{border-left-color:#c83838;background:#ffe9e8}
-.early-warning.wave-calm{border-left-color:#16836a;background:#eaf8f1}
+.early-warning.wave-calm{border-left-color:#7b8b97;background:#eef2f5}
 .early-warning.stale{border-left-color:#7b8b97;background:#eef2f5}
 .early-summary{display:flex;flex-direction:column;gap:10px;align-items:stretch;min-width:170px;flex-shrink:0}
 .early-summary .early-pill{text-align:center;background:#e6edf1;color:#244a5e}
 .early-intensity{display:block;border-radius:12px;font-size:16px;font-weight:850;letter-spacing:.15px;line-height:1.25;padding:13px 15px;text-align:center;background:#a5b4bf;color:#112b38;border:1px solid #8698a5}
+.wave-white .early-intensity{background:#fff;color:#26394d;border-color:#aebcc7}
 .wave-yellow .early-intensity{background:#f2c334;color:#4f3800;border-color:#ce9c10}
 .wave-orange .early-intensity{background:#ed9138;color:#442100;border-color:#be5c1e}
 .wave-red .early-intensity{background:#cb3e42;color:#fff;border-color:#a6232a}
-.wave-calm .early-intensity{background:#188b70;color:#fff;border-color:#0a6954}
+.wave-calm .early-intensity{background:#dfe7ec;color:#526570;border-color:#a5b4bf}
 .stale .early-intensity{background:#7b8b97;color:#fff;border-color:#657682}
 @media(max-width:680px){.early-warning{padding-left:16px}.early-summary{width:100%;min-width:0;flex-direction:row;align-items:stretch}.early-intensity{flex:1}.early-summary .early-pill{align-self:center;flex-shrink:0}}
 
@@ -706,17 +710,19 @@ function detectLongWave(r){
       || (r.secondary_swell_mean_period_s>=8 && r.secondary_swell_height_m>=0.20)
       || (r.wave_peak_period_s>=8 && r.significant_wave_height_m>=0.35);
 }
+// Classificazione grafica esclusiva per Hs totale: centimetri arrotondati all'intero.
+function waveHsBand(meters){if(typeof meters!=="number"||!Number.isFinite(meters)||meters<0)return null;const cm=Math.round(meters*100);return cm<=25?"white":cm<=40?"yellow":cm<=80?"orange":"red";}
 function updateEarlyWarning(){
   const box=$('earlyWarning'),title=$('earlyTitle'),desc=$('earlyDesc'),fact=$('earlyFact'),badge=$('earlyBadge'),foot=$('earlyFoot'),intensity=$('earlyIntensity');
   const it=lang==='it';
   box.className='early-warning';
   intensity.textContent=it?'DATI DA VERIFICARE':'CHECK DATA';
   $('waveScale').innerHTML=(it?'<strong>Colori per Hs totale:</strong>':'<strong>Total Hs colors:</strong>')+
-    '<span><i style="background:#55b995"></i>'+(it?'Nessun segnale':'No qualifying signal')+'</span>'+
-    '<span><i style="background:#e1be45"></i>&lt; 0,50 m</span>'+
-    '<span><i style="background:#ed954a"></i>0,50–0,99 m</span>'+
-    '<span><i style="background:#d65c59"></i>≥ 1,00 m</span>'+
-    '<span><i style="background:#a5b4bf"></i>'+(it?'Dati insufficienti':'Insufficient data')+'</span>';
+    '<span><i style="background:#ffffff;border-color:#aebcc7"></i>'+(it?'Bianco 0–25 cm':'White 0–25 cm')+'</span>'+
+    '<span><i style="background:#f2c334"></i>'+(it?'Giallo 26–40 cm':'Yellow 26–40 cm')+'</span>'+
+    '<span><i style="background:#ed9138"></i>'+(it?'Arancione 41–80 cm':'Orange 41–80 cm')+'</span>'+
+    '<span><i style="background:#cb3e42"></i>'+(it?'Rosso >80 cm':'Red >80 cm')+'</span>'+
+    '<span><i style="background:#a5b4bf"></i>'+(it?'Nessun episodio / dati non validi':'No episode / invalid data')+'</span>';
   $('earlyKicker').textContent=it?'SORVEGLIANZA ONDA LUNGA · BREGA OFFSHORE':'LONG-PERIOD WAVE WATCH · BREGA OFFSHORE';
   const generated=Date.parse(feed.generated_at_utc),now=Date.now();
   const fresh=online && Number.isFinite(generated) && generated<=now+15*60000 && (now-generated)<=6*3600000;
@@ -728,7 +734,7 @@ function updateEarlyWarning(){
   const last=future.length?Date.parse(future.at(-1).valid_time_utc):0;
   if(future.length<2 || last<now+90*3600000){box.classList.add('stale');intensity.textContent=it?'DATI INCOMPLETI':'INCOMPLETE DATA';badge.textContent=it?'COPERTURA RIDOTTA':'LIMITED DATA';title.textContent=it?'Orizzonte a 96 ore non completamente disponibile':'96-hour coverage is incomplete';desc.textContent=it?'I dati disponibili non coprono in modo sufficiente le prossime 96 ore. Il sistema non può escludere eventi oltre la copertura.':'Available data do not sufficiently cover the next 96 hours. Events beyond that period cannot be excluded.';fact.textContent=it?'Ultima previsione disponibile: '+(future.length?datetime(future.at(-1).valid_time_utc):'—'):'Last available forecast: '+(future.length?datetime(future.at(-1).valid_time_utc):'—');return;}
   const candidateIndex=future.findIndex((r,i)=>{const next=future[i+1];return detectLongWave(r)&&detectLongWave(next)&&(Date.parse(next.valid_time_utc)-Date.parse(r.valid_time_utc)<=7200000)});
-  if(candidateIndex<0){box.classList.add('wave-calm');intensity.textContent=it?'VERDE · NESSUN SEGNALE':'GREEN · NO SIGNAL';badge.textContent=it?'IN MONITORAGGIO':'WATCHING';title.textContent=it?'Nessun episodio di onda lunga individuato entro 96 ore':'No long-period episode identified within 96 hours';desc.textContent=it?'Il modello non mostra almeno due previsioni orarie consecutive sopra le soglie esplorative a Brega Offshore. Il monitoraggio continua a ogni aggiornamento.':'The model has no two consecutive hourly predictions above provisional thresholds at Brega Offshore. Monitoring continues with each update.';fact.textContent=it?'Previsione fino a: '+datetime(future.at(-1).valid_time_utc):'Forecast through: '+datetime(future.at(-1).valid_time_utc);return;}
+  if(candidateIndex<0){box.classList.add('wave-calm');intensity.textContent=it?'NESSUN EPISODIO':'NO EPISODE';badge.textContent=it?'IN MONITORAGGIO':'WATCHING';title.textContent=it?'Nessun episodio di onda lunga individuato entro 96 ore':'No long-period episode identified within 96 hours';desc.textContent=it?'Il modello non mostra almeno due previsioni orarie consecutive sopra le soglie esplorative a Brega Offshore. Il monitoraggio continua a ogni aggiornamento.':'The model has no two consecutive hourly predictions above provisional thresholds at Brega Offshore. Monitoring continues with each update.';fact.textContent=it?'Previsione fino a: '+datetime(future.at(-1).valid_time_utc):'Forecast through: '+datetime(future.at(-1).valid_time_utc);return;}
   const start=future[candidateIndex],lead=(Date.parse(start.valid_time_utc)-now)/3600000;
   const category=lead<=48?'48 h':lead<=72?'72 h':'96 h';
   // Intensità: massimo Hs nell'episodio continuo, non soltanto al primo superamento.
@@ -740,9 +746,10 @@ function updateEarlyWarning(){
     episode.push(r);
   }
   const peak=maxRow(episode),peakHs=peak.significant_wave_height_m;
-  box.classList.add(peakHs<0.50?'wave-yellow':peakHs<1.00?'wave-orange':'wave-red');
-  const colorName=peakHs<0.50?(it?'GIALLO':'YELLOW'):peakHs<1.00?(it?'ARANCIONE':'ORANGE'):(it?'ROSSO':'RED');
-  intensity.textContent=colorName+' · '+(it?'Hs max ':'Peak Hs ')+fmt(peakHs,2)+' m';
+  const band=waveHsBand(peakHs);
+  if(band)box.classList.add('wave-'+band);else box.classList.add('stale');
+  const bandName={white:it?'BIANCO':'WHITE',yellow:it?'GIALLO':'YELLOW',orange:it?'ARANCIONE':'ORANGE',red:it?'ROSSO':'RED'};
+  intensity.textContent=(band?bandName[band]:(it?'HS NON DISPONIBILE':'HS UNAVAILABLE'))+' · '+(it?'Hs max ':'Peak Hs ')+fmt(peakHs,2)+' m';
   // La direzione mostrata è quella della componente che ha attivato il segnale.
   const components=[
     {ok:start.primary_swell_mean_period_s>=8&&start.primary_swell_height_m>=.20,
